@@ -1,0 +1,45 @@
+#working directory
+#/etc/sysconfig/network-scripts
+
+#set up bridge
+#create a file called ifcfg-br#   '#' is the nubmer, example ifcfg-br0
+
+cat > ifcfg-br0
+<<-	BR
+DEVICE=br0
+NAME=br0
+TYPE=Bridge
+ONBOOT=yes
+IPADDR=10.128.0.1
+NETMASK=255.255.0.0
+BROADCAST=10.128.255.255
+BOOTPROTO=static
+NM_CONTROLLED=yes
+DELAY=0
+STP=no
+	BR
+
+#set up eth device
+#create a file called ifcfg-eth# (or probably ifcfg-em#), example ifcfg-em1
+#
+
+cat > ifcfg-em1
+<<-	ETH
+TYPE=Ethernet
+DEVICE=em1
+NAME=em1
+BOOTPROTO=none
+BRIDGE=br0
+IPV4INIT=yes
+IPV4_AUTOCONF=yes
+IPV4_DEFROUTE=yes
+IPV4_PEERDNS=yes
+IPV4_PEERROUTES=yes
+IPV4_FAILURE_FATAL=no
+ONBOOT=yes
+NM_CONTROLLED=yes
+	ETH
+
+#restart networking service
+root:# systemctl restart network.service
+

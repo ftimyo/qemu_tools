@@ -1,0 +1,142 @@
+#!/bin/bash
+
+function HOWTO() {
+	cat >&2\
+		<<- USAGE
+		usage:
+			-i	specify the base image
+			-b	specify the base name for the child
+			-s	specify the starting number
+			-e	specify the ending number
+			example:
+				./gen-child	-b s -i ./base/base.img -s 1 -e 3
+				this will create s1.img s2.img s3.img
+				based on image ./base/base.img
+		USAGE
+	exit 1
+}
+
+
+
+while getopts :i:b:s:e: opt
+do
+	case $opt in
+	i) baseimg=$OPTARG
+	;;
+	b) basename=$OPTARG
+	;;
+	s) first=$OPTARG
+	;;
+	e) last=$OPTARG
+	;;
+	\?) HOWTO
+	;;
+	esac
+done
+
+if [[ ! -e $baseimg || $baseimg == "" ]]; then
+	echo "invalid base image"
+	exit 1
+fi
+
+if [[ $basename == "" ]]; then
+	echo "you need to specify a basename"
+	exit 1
+fi
+
+if [[ $first == "" || $last == "" ]]; then
+	echo starting number and ending number must be specified
+	exit 1
+fi
+
+if (( last < first || first <= 0 ))
+then
+	echo "ending number should not be larger than starting number"
+	echo "starting number must be larger than zero"
+	exit 1
+fi
+
+suffix=${baseimg##*.}
+
+sudo modprobe nbd max_part=8
+
+if (( $? != 0 )); then
+	echo nbd module load fails
+	exit 1
+fi
+
+while [[ ! -e /dev/nbd0 ]]
+do
+	echo loading nbd ...
+	sleep 1
+done
+
+for ((i=$first;i <= $last;i++))
+do
+	childname=$basename$i.$suffix
+	echo $childname
+
+	qemu-img create -f qcow2 -b $baseimg $childname 32G
+
+	if (( $? != 0 )); then
+		echo image file cannot be created
+		break
+	fi
+
+	sudo qemu-nbd -c /dev/nbd0 $childname
+
+	while [[ ! -e /dev/nbd0p1 ]]
+	do
+		echo connecting nbd ...
+		sleep 1
+	done
+
+	sudo mount /dev/nbd0p1 /mnt
+
+	if (( $? != 0 )); then
+		echo fail to mount vm disk image
+		sudo qemu-nbd -d /dev/nbd0
+		break
+	fi
+
+	while [[ ! -e /mnt/etc/network/interfaces ]]
+	do
+		echo configuring the new child vm ...
+		sleep 1
+	done
+
+	sudo sed -i -e '/^address/s/1$/'"$i"'/' -e '/^hwaddress/s/1$/'"$i"'/' /mnt/etc/network/interfaces
+
+	hn=$(cat /mnt/etc/hostname)
+
+	sudo sed -i -e s/$hn/$basename$i/g	/mnt/etc/hostname
+	sudo sed -i -e s/$hn/$basename$i/g	/mnt/etc/hosts
+
+	echo returning resources to system, finishing vm $childname config
+	sudo umount /mnt
+
+	if (( $? != 0 )); then
+		echo fail to umount disk for vm $childname
+		exit 1
+	fi
+
+	sudo qemu-nbd -d /dev/nbd0
+
+	if (( $? != 0 )); then
+		echo fail to disconnect nbd for vm $childname image
+		exit 1
+	fi
+
+done
+
+sudo rmmod nbd
+
+if (( $? != 0 )); then
+	echo unable to unload nbd module
+fi
+
+while [[ -e /dev/nbd0 ]]
+do
+	echo unloading nbd ...
+done
+

@@ -1,0 +1,130 @@
+#!/bin/bash
+if [[ `whoami` != root ]]; then
+	echo you must be root to run this program
+	exit 1
+fi
+
+function HOWTO () {
+	cat >&2\
+		<<- USAGE
+		usage:
+		-b is supported to specify the name of the base image
+		-f can specify the name of the disk file
+		USAGE
+		exit 1
+}
+
+
+while getopts :b:f: opt
+do
+	case $opt in
+	b) baseimg=$OPTARG
+	;;
+	f) diskfile=$OPTARG
+	;;
+	\?) HOWTO
+	;;
+	esac
+done
+if [[ $baseimg == "" ]]
+then
+	echo you need to specify the base image by -b switch
+	exit 1
+fi
+
+if [[ ! -e $baseimg ]]
+then
+	echo cannot find the base image
+	exit 1
+fi
+
+if [[ $diskfile == "" ]]
+then
+	echo you need to specify the diskfile name by -f switch
+	exit 1
+fi
+
+qemu-img create -f qcow2 -b $baseimg $diskfile 32G
+chown tim:tim $diskfile
+
+function check_res() {
+	if (( $? != 0 )); then
+		echo $@
+		exit 1
+	fi
+}
+
+modprobe nbd max_part=8
+
+check_res "fail to load module nbd"
+
+while [[ ! -e /dev/nbd0 ]]
+do
+	echo loading module nbd ...
+	sleep 1
+done
+
+qemu-nbd -c /dev/nbd0 $diskfile
+
+check_res "fail to connect vm image"
+
+while [[ ! -e /dev/nbd0p1 ]]
+do
+	echo connecting vm image to nbd ...
+	sleep 1
+done
+
+mount /dev/nbd0p1 /mnt
+
+check_res "fail to mount vm image"
+
+
+cat > /mnt/etc/network/interfaces\
+<<-	NET_CONFIG
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+#The primary network interface
+auto eth1
+iface eth1 inet dhcp
+##########
+auto eth0
+iface eth0 inet static
+address 10.128.1.1
+netmask 255.255.0.0
+#gateway 10.128.0.1
+hwaddress ether ee:ee:ee:ee:ee:01
+#dns-nameservers 10.128.0.1
+#dns-search osnet1.cs.binghamton.edu
+##########
+
+	NET_CONFIG
+
+cat >> /mnt/etc/fstab\
+<<-	NFS_PAR
+10.128.0.1:/home/tim/HOME	/home/tim	nfs	defaults	0	0
+	NFS_PAR
+
+cat >> /mnt/etc/default/grub\
+<<-	TTYS0
+GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,19200n8"
+GRUB_TERMINAL=serial
+GRUB_SERIAL_COMMAND="serial --speed=19200 --unit=0 --word=8 --parity=no --stop=1"
+	TTYS0
+
+umount /mnt
+
+check_res "fail to unmount vm image"
+
+qemu-nbd -d /dev/nbd0
+
+check_res "fail to disconnect vm image"
+
+rmmod nbd
+
+check_res "fail to remove nbd module"
+
