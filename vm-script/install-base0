@@ -95,9 +95,9 @@ iface eth1 inet dhcp
 auto eth0
 iface eth0 inet static
 address 10.128.1.1
-netmask 255.255.0.0
+#netmask 255.255.0.0
 #gateway 10.128.0.1
-hwaddress ether ee:ee:ee:ee:ee:01
+#hwaddress ether ee:ee:ee:ee:ee:01
 #dns-nameservers 10.128.0.1
 #dns-search osnet1.cs.binghamton.edu
 ##########
@@ -106,7 +106,7 @@ hwaddress ether ee:ee:ee:ee:ee:01
 
 cat >> /mnt/etc/fstab\
 <<-	NFS_PAR
-10.128.0.1:/home/tim/HOME	/home/tim	nfs	defaults	0	0
+10.128.0.1:/home/tim/	/home/tim	nfs	defaults	0	0
 	NFS_PAR
 
 cat >> /mnt/etc/default/grub\
