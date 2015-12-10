@@ -1,5 +1,51 @@
 #!/bin/bash
-for ((i=$1;i<=$2;i++))
+
+function HOWTO() {
+	cat >&2\
+		<<- USAGE
+		usage:
+			-b	specify the base name for the vm
+			-s	specify the starting number
+			-e	specify the ending number
+			example:
+				./run	-b s -s 1 -e 3
+				this will run s1.img s2.img s3.img
+		USAGE
+	exit 1
+}
+
+while getopts :b:s:e: opt
+do
+	case $opt in
+	b) basename=$OPTARG
+	;;
+	s) first=$OPTARG
+	;;
+	e) last=$OPTARG
+	;;
+	\?) HOWTO
+	;;
+	esac
+done
+
+if [[ $basename == "" ]]; then
+	echo "you need to specify a basename"
+	exit 1
+fi
+
+if [[ $first == "" || $last == "" ]]; then
+	echo starting number and ending number must be specified
+	exit 1
+fi
+
+if (( last < first || first <= 0 ))
+then
+	echo "ending number should not be larger than starting number"
+	echo "starting number must be larger than zero"
+	exit 1
+fi
+
+for ((i=$first;i<=$last;i++))
 do
 #turn down and delete previous tap devices
 sudo ifconfig qtap$i down
@@ -9,5 +55,5 @@ sudo tunctl -b -u root -t qtap$i
 sudo brctl addif br0 qtap$i
 sudo ifconfig qtap$i up 0.0.0.0 promisc
 #run virtual machine with double network cards
-sudo qemu-system-x86_64 -drive file=s$i.qcow2,if=virtio -enable-kvm -m 2048M  -net nic,vlan=0,model=virtio -net tap,ifname=qtap$i,script=no,downscript=no,vlan=0 -net nic,vlan=1,model=virtio -net user,vlan=1 -vnc :$i&
+sudo qemu-system-x86_64 -drive file=$basename$i.qcow2,if=virtio -enable-kvm -m 2048M  -net nic,vlan=0,model=virtio -net tap,ifname=qtap$i,script=no,downscript=no,vlan=0 -net nic,vlan=1,model=virtio -net user,vlan=1 -vnc :$i&
 done

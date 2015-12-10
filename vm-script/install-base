@@ -80,4 +80,4 @@ fi
 
 sleep 1
 
-gvncviewer :0&
+xvnc4viewer :0&
