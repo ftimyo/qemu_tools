@@ -1,0 +1,10 @@
+#!/bin/bash
+#turn down and delete previous tap devices
+sudo ifconfig qtap0 down
+sudo brctl delif br0 qtap0
+#set up new tap devices connected to br0
+sudo tunctl -b -u root -t qtap0
+sudo brctl addif br0 qtap0
+sudo ifconfig qtap0 up 0.0.0.0 promisc
+#run virtual machine with double network cards
+sudo qemu-system-x86_64 -drive file=$1,if=virtio -enable-kvm -m 2048M  -net nic,vlan=0,model=virtio -net tap,ifname=qtap0,script=no,downscript=no,vlan=0 -net nic,vlan=1,model=virtio -net user,vlan=1 -vnc :0&
