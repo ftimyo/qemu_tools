@@ -8,7 +8,7 @@ root:# yum install bridge-utils uml_utilitis
 #yum install nfs-utils
 #add following line to /etc/exports
 #
-/home/tim/HOME 	 *(rw,sync,no_root_squash,no_subtree_check,crossmnt,fsid=0)
+/home/tim	*(rw,sync,no_root_squash,no_subtree_check,crossmnt,fsid=0)
 
 root:# systemctl start rpcbind.service
 root:# systemctl start nfs-server.service
@@ -57,3 +57,13 @@ root:# #do something
 root:# umount /mnt
 root:# qemu-nbd -d /dev/nbd[n]
 root:# rmmod nbd
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+#may need to enable ssh service in the Kali VM
+
+systemctl enable ssh.service
+
+#To solve the problem of NFS not mounting on boot
+#add the following line in [kali_vm]:/etc/rc.local
+
+mount -a
