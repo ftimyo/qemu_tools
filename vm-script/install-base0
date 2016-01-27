@@ -89,11 +89,11 @@ auto lo
 iface lo inet loopback
 
 #The primary network interface
-auto eth1
-iface eth1 inet dhcp
+auto ens4
+iface ens4 inet dhcp
 ##########
-auto eth0
-iface eth0 inet static
+auto ens3
+iface ens3 inet static
 address 10.128.1.1
 #netmask 255.255.0.0
 #gateway 10.128.0.1
