@@ -1,3 +1,6 @@
+#OLD way use static IP, and two nic in vm
+
+
 #thing needs to do before configure
 #the virtual machine host
 #
