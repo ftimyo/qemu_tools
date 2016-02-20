@@ -1,45 +1,12 @@
-#thing needs to do before configure
-#the virtual machine host
-#
-#fedora
-root:# yum install qemu qemu-kvm
-root:# yum install bridge-utils uml_utilitis
-#setting the nfs-utils
-#yum install nfs-utils
-#add following line to /etc/exports
-#
-/home/tim/HOME 	 *(rw,sync,no_root_squash,no_subtree_check,crossmnt,fsid=0)
-
-root:# systemctl start rpcbind.service
-root:# systemctl start nfs-server.service
-root:# systemctl start nfs-lock.service
-root:# systemctl start nfs-idmap.service
-
-root:# systemctl enable rpcbind.service
-root:# systemctl enable nfs-server.service
-root:# systemctl enable nfs-lock.service
-root:# systemctl enable nfs-idmap.service
-
-
-#important!!! when using nfs fedora's firewall service must be stoppd
-root:# systemctl stop firewalld.service
-#if want to disable the firewall service, use the following command
-root:# systemctl disable firewalld.service
-
-#sometimes it is probably needed to start the ssh server service
-systemctl start sshd.service
-#let sshd start at boot time
-systemctl enable sshd.service
-
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 #debian
 root:# apt-get install qemu qemu-kvm
-root:# apt-get install bridge-utils uml-utilitis
+root:# apt-get install bridge-utils
 #setting the nfs-kernel-server
 #apt-get install nfs-kernel-server
 #add following line to /etc/exports
 #
-/home/tim/HOME 	 *(rw,sync,no_root_squash,no_subtree_check,crossmnt,fsid=0)
+/home/tim	*(rw,sync,no_root_squash,no_subtree_check,crossmnt,fsid=0)
 /etc/init.d/nfs-kernel-server restart
 
 
@@ -57,3 +24,7 @@ root:# #do something
 root:# umount /mnt
 root:# qemu-nbd -d /dev/nbd[n]
 root:# rmmod nbd
+
+#bridge network and others reference
+
+Debian Qemu wiki

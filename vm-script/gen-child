@@ -49,10 +49,10 @@ if [[ $first == "" || $last == "" ]]; then
 	exit 1
 fi
 
-if (( last < first || first <= 0 ))
+if (( last < first || first < 0 ))
 then
 	echo "ending number should not be larger than starting number"
-	echo "starting number must be larger than zero"
+	echo "starting number must not be negative"
 	exit 1
 fi
 
@@ -98,14 +98,6 @@ do
 		sudo qemu-nbd -d /dev/nbd0
 		break
 	fi
-
-	while [[ ! -e /mnt/etc/network/interfaces ]]
-	do
-		echo configuring the new child vm ...
-		sleep 1
-	done
-
-	sudo sed -i -e '/^address/s/1$/'"$i"'/' -e '/^hwaddress/s/1$/'"$i"'/' /mnt/etc/network/interfaces
 
 	hn=$(cat /mnt/etc/hostname)
 

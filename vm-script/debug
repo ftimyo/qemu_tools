@@ -1,13 +1,52 @@
 #!/bin/bash
-for ((i=$1;i<=$2;i++))
+
+function HOWTO () {
+	cat >&2\
+		<<-	USAGE
+		Usage:
+				use -f to specify the name of the disk image file
+				use -t to specify the tap name
+				use -v to specify vnc number
+		Example: ./run -f [disk.qcow2] -t [tap0] -v [0]
+			USAGE
+		exit 1
+}
+
+
+while getopts :f:t:v: opt
 do
-#turn down and delete previous tap devices
-sudo ifconfig qtap$i down
-sudo brctl delif br0 qtap$i
-#set up new tap devices connected to br0
-sudo tunctl -b -u root -t qtap$i
-sudo brctl addif br0 qtap$i
-sudo ifconfig qtap$i up 0.0.0.0 promisc
-#run virtual machine with double network cards
-sudo qemu-system-x86_64 -drive file=s$i.qcow2,if=virtio -enable-kvm -m 1024M  -net nic,vlan=0,model=virtio -net tap,ifname=qtap$i,script=no,downscript=no,vlan=0 -net nic,vlan=1,model=virtio -net user,vlan=1 -vnc :$i -serial file:log$i&
+	case $opt in
+	f) diskfile=$OPTARG
+	;;
+	t) tap=$OPTARG
+	;;
+	v) vnc=$OPTARG
+	;;
+	\?) HOWTO
+	;;
+	esac
 done
+
+if [[ $diskfile == "" ]]; then
+	echo you need to specify a valid name for the disk file
+	exit 1
+fi
+
+if [[ $tap == "" ]]; then
+	echo you need to specify the tap device name
+	exit 1
+fi
+
+if [[ $vnc == "" ]]; then
+	echo you need to specify the vnc number
+	exit 1
+fi
+
+echo "If not, run [update-grub] on the guest OS, to make this script usable"
+
+sudo qemu-system-x86_64 -smp 2\
+ 	-drive file=$diskfile,if=virtio\
+	-enable-kvm -m 2048M\
+	-net nic,model=virtio\
+	-net tap,ifname=$tap,script=no,downscript=no\
+	-vnc :$vnc -serial file:LOG$diskfile.log

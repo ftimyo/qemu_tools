@@ -6,17 +6,24 @@ function HOWTO () {
 		Usage:
 				use -i to specify installation iso image
 				use -f to specify the name of the disk image file
+				use -t to specify the tap name
+				use -v to specify vnc number
+		Example: ./install-base -i [cdrom.iso] -f [disk.qcow2] -t [tap0] -v [0]
 			USAGE
 		exit 1
 }
 
 
-while getopts :i:f: opt
+while getopts :i:f:t:v: opt
 do
 	case $opt in
 	i) iso=$OPTARG
 	;;
 	f) diskfile=$OPTARG
+	;;
+	t) tap=$OPTARG
+	;;
+	v) vnc=$OPTARG
 	;;
 	\?) HOWTO
 	;;
@@ -39,6 +46,16 @@ if [[ $diskfile == "" ]]; then
 	exit 1
 fi
 
+if [[ $tap == "" ]]; then
+	echo you need to specify the tap device name
+	exit 1
+fi
+
+if [[ $vnc == "" ]]; then
+	echo you need to specify the vnc number
+	exit 1
+fi
+
 while true
 do
 	if [[ -e $diskfile ]]; then
@@ -54,30 +71,10 @@ do
 	fi
 done
 
-if [[ `whereis brctl` == "" || `whereis tunctl` == "" ]]; then
-	echo you need to install uml-utilities and bridge-utils packages
-fi
-
-
-i=0
-#turn down and delete previous tap devices
-sudo ifconfig qtap$i down
-sudo brctl delif br0 qtap$i
-#set up new tap devices connected to br0
-sudo tunctl -b -u root -t qtap$i
-sudo brctl addif br0 qtap$i
-sudo ifconfig qtap$i up 0.0.0.0 promisc
-if (( $? != 0 )); then
-	echo fail to configure tap device
-	exit 1
-fi
-#run virtual machine with double network cards
 qemu-img create -f qcow2 $diskfile 32G
-sudo qemu-system-x86_64 -smp 2 -drive file=$diskfile,if=virtio -enable-kvm -m 2048M  -net nic,vlan=0,model=virtio -net tap,ifname=qtap$i,script=no,downscript=no,vlan=0 -net nic,vlan=1,model=virtio -net user,vlan=1 -vnc :$i -cdrom $iso&
-if (( $? != 0 )); then
-	echo qemu fail to start vm
-fi
-
-sleep 1
-
-xvnc4viewer :0&
+sudo qemu-system-x86_64 -smp 2\
+ 	-drive file=$diskfile,if=virtio\
+	-enable-kvm -m 2048M\
+	-net nic,model=virtio -net tap,ifname=$tap,script=no,downscript=no\
+	-vnc :$vnc\
+	-cdrom $iso

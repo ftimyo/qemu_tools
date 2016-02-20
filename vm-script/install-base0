@@ -10,17 +10,21 @@ function HOWTO () {
 		usage:
 		-b is supported to specify the name of the base image
 		-f can specify the name of the disk file
+		-n specify the nfs host name
+		Example: ./install-base0 -b [base.qcow2] -f [disk.qcow2] -h [nfs host]
 		USAGE
 		exit 1
 }
 
 
-while getopts :b:f: opt
+while getopts :b:f:n: opt
 do
 	case $opt in
 	b) baseimg=$OPTARG
 	;;
 	f) diskfile=$OPTARG
+	;;
+	n) nfs=$OPTARG
 	;;
 	\?) HOWTO
 	;;
@@ -41,6 +45,12 @@ fi
 if [[ $diskfile == "" ]]
 then
 	echo you need to specify the diskfile name by -f switch
+	exit 1
+fi
+
+if [[ $nfs == "" ]]
+then
+	echo you need to specify the host name by -h switch
 	exit 1
 fi
 
@@ -78,35 +88,9 @@ mount /dev/nbd0p1 /mnt
 
 check_res "fail to mount vm image"
 
-
-cat > /mnt/etc/network/interfaces\
-<<-	NET_CONFIG
-# This file describes the network interfaces available on your system
-# and how to activate them. For more information, see interfaces(5).
-
-# The loopback network interface
-auto lo
-iface lo inet loopback
-
-#The primary network interface
-auto eth1
-iface eth1 inet dhcp
-##########
-auto eth0
-iface eth0 inet static
-address 10.128.1.1
-#netmask 255.255.0.0
-#gateway 10.128.0.1
-#hwaddress ether ee:ee:ee:ee:ee:01
-#dns-nameservers 10.128.0.1
-#dns-search osnet1.cs.binghamton.edu
-##########
-
-	NET_CONFIG
-
 cat >> /mnt/etc/fstab\
 <<-	NFS_PAR
-10.128.0.1:/home/tim/	/home/tim	nfs	defaults	0	0
+$nfs:/home/tim/	/home/tim	nfs	defaults	0	0
 	NFS_PAR
 
 cat >> /mnt/etc/default/grub\

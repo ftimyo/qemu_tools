@@ -7,16 +7,27 @@ source /etc/network/interfaces.d/*
 auto lo
 iface lo inet loopback
 
-auto eth0
+#auto eth0
 iface eth0 inet manual
 
 auto br0
-iface br0 inet static
-	address 10.128.0.1
-#	netmask 255.255.0.0
-#	broadcast 10.128.255.255
-#	gateway 10.128.0.1
-	bridge_ports eth0
-	bridge_fd 0
-	bridge_maxwait 0
-	bridge_stp off
+iface br0 inet dhcp
+	pre-up ip tuntap add dev tap0 mode tap user tim
+	pre-up ip link set tap0 up
+	pre-up ip tuntap add dev tap1 mode tap user tim
+	pre-up ip link set tap1 up
+	pre-up ip tuntap add dev tap2 mode tap user tim
+	pre-up ip link set tap2 up
+	pre-up ip tuntap add dev tap3 mode tap user tim
+	pre-up ip link set tap3 up
+	bridge_ports	eth0 tap0 tap1 tap2 tap3
+	bridge_stp 	off
+	bridge_fd	0
+	post-down ip link set tap0 down
+	post-down ip tuntap del dev tap0 mode tap
+	post-down ip link set tap1 down
+	post-down ip tuntap del dev tap1 mode tap
+	post-down ip link set tap2 down
+	post-down ip tuntap del dev tap2 mode tap
+	post-down ip link set tap3 down
+	post-down ip tuntap del dev tap3 mode tap
