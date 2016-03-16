@@ -42,9 +42,9 @@ if [[ $vnc == "" ]]; then
 	exit 1
 fi
 
-sudo qemu-system-x86_64 -smp 2\
+sudo qemu-system-x86_64 -smp 4\
  	-drive file=$diskfile,if=virtio\
-	-enable-kvm -m 2048M\
+	-enable-kvm -m 4096M\
 	-net nic,model=virtio\
 	-net tap,ifname=$tap,script=no,downscript=no\
 	-vnc :$vnc

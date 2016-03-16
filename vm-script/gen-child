@@ -76,7 +76,7 @@ do
 	childname=$basename$i.$suffix
 	echo $childname
 
-	qemu-img create -f qcow2 -b $baseimg $childname 32G
+	qemu-img create -f qcow2 -b $baseimg $childname 64G
 
 	if (( $? != 0 )); then
 		echo image file cannot be created
